@@ -1,6 +1,10 @@
-# 石墨极简补充组件 —— 代码、图片与标签
+# 通用增量组件库 —— 代码块 · 图片/GIF · 小标签标题
 
-按需读取。本技能专用配色已经归一为石墨灰，不需要再换色。主题库有等价组件时优先用主题库；内容边界和正文兼容性约定以 SKILL.md 为准。
+> **跨所有主题通用**。主题专属组件（引言卡、章节标题、签名等）读各自主题库；本文件提供三类**所有主题都需要**的组件：代码块、图片/GIF、小标签标题。
+>
+> **配色占位**：下面用红白色系（主色 `#DC2626`、浅底 `#FEF2F2`、浅标 `#FEE2E2`、深字 `#991B1B`）做示例。换其它主题时，把这几个值替换为该主题"设计变量速查表"里的对应色；代码块深色版各主题可共用，浅色版用主题主色做左竖条。
+>
+> **平台限制**：同主题库——禁 `<style>/<script>/class/id/div/position/float/@media/grid`，只用内联 + `flex`，文字全部 `<span leaf="">` 包裹。
 
 ---
 
@@ -11,49 +15,51 @@
 ### 1a. 深色代码块（默认，技术感强，适配所有主题）
 
 ```html
-<section style="margin:0 0 20px;border-radius:8px;overflow:hidden;background:#27272A;box-shadow:0 4px 16px -8px rgba(15,23,42,0.4);">
-  <section style="display:flex;align-items:center;padding:9px 14px;background:#18181B;">
-    <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#71717A;margin-right:7px;font-size:0px;line-height:0;overflow:hidden;"><span leaf=""><br></span></span>
-    <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#A1A1AA;margin-right:7px;font-size:0px;line-height:0;overflow:hidden;"><span leaf=""><br></span></span>
-    <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#D4D4D8;font-size:0px;line-height:0;overflow:hidden;"><span leaf=""><br></span></span>
+<section style="margin:0 0 20px;border-radius:8px;overflow:hidden;background:#1E293B;box-shadow:0 4px 16px -8px rgba(15,23,42,0.4);">
+  <section style="display:flex;align-items:center;padding:9px 14px;background:#0F172A;">
+    <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FF5F56;margin-right:7px;font-size:0;line-height:0;overflow:hidden;">.</span>
+    <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FFBD2E;margin-right:7px;font-size:0;line-height:0;overflow:hidden;">.</span>
+    <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27C93F;font-size:0;line-height:0;overflow:hidden;">.</span>
     <span style="margin-left:12px;font-size:12px;color:#64748B;font-family:Consolas,Monaco,monospace;letter-spacing:1px;"><span leaf="">python</span></span>
   </section>
   <section style="padding:11px 14px;">
-    <p style="margin:0;overflow-wrap:anywhere;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">def make_skill(name):</span></p>
-    <p style="margin:0;overflow-wrap:anywhere;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">&nbsp;&nbsp;&nbsp;&nbsp;return f"已生成 {name}"</span></p>
-    <p style="margin:0;overflow-wrap:anywhere;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">print(make_skill("gzh-design"))</span></p>
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">def make_skill(name):</span></p>
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">　　return f"已生成 {name}"</span></p>
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">print(make_skill("gzh-design"))</span></p>
   </section>
 </section>
 ```
 
-要点（**关键，避免大段空白**）：① 顶栏灰阶圆点 + 语言名（无语言可删该 span）；② **每行代码用一个 `<p style="margin:0;...">`，不要用 `white-space:pre`**——否则 HTML 源码里 span 前的缩进和行间换行会被原样渲染成大左缩进 + 空行；③ 原始代码先 HTML 转义；空格用 `&nbsp;` 显示，制表符按 4 列展开，空行用 `<br>`；不使用全角空格替换代码；④ 行距只靠 `line-height:1.6` 控制，padding 用 `11px 14px`，保持紧凑；⑤ 长行段落增加 `overflow-wrap:anywhere` 并检查手机预览。
+要点（**关键，避免大段空白**）：① 顶栏三色圆点 + 语言名（无语言可删该 span）；② **每行代码用一个 `<p style="margin:0;...">`，不要用 `white-space:pre`**——否则 HTML 源码里 span 前的缩进和行间换行会被原样渲染成大左缩进 + 空行；③ 需要缩进时在 span 文字里用全角空格 `　`（不要靠源码空格）；④ 行距只靠 `line-height:1.6` 控制，padding 用 `11px 14px`，保持紧凑；⑤ 长行会自动换行，不溢出。
 
-### 1b. 浅色代码块（石墨灰浅色版）
+### 1b. 浅色代码块（适配浅色温和主题，如玫瑰粉/天蓝/焦糖棕）
 
 ```html
-<section style="margin:0 0 20px;border-radius:8px;overflow:hidden;background:#F6F8FA;border:1px solid #E5E7EB;border-left:3px solid #52525B;">
+<section style="margin:0 0 20px;border-radius:8px;overflow:hidden;background:#F6F8FA;border:1px solid #E5E7EB;border-left:3px solid #DC2626;">
   <section style="padding:7px 14px;border-bottom:1px solid #E5E7EB;">
     <span style="font-size:12px;color:#9CA3AF;font-family:Consolas,Monaco,monospace;letter-spacing:1px;"><span leaf="">bash</span></span>
   </section>
   <section style="padding:11px 14px;">
-    <p style="margin:0;overflow-wrap:anywhere;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#24292F;"><span leaf="">npx skills add gzh-design</span></p>
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#24292F;"><span leaf="">npx skills add gzh-design</span></p>
   </section>
 </section>
 ```
 
+（左竖条 `#DC2626` 换成当前主题主色；多行同 1a：每行一个 `<p style="margin:0">`，不用 `white-space:pre`，缩进用全角空格 `　`。）
 
 ### 1c. 行内代码（正文中的 `code` 短片段）
 
 ```html
-<span style="background:#F1F5F9;color:#52525B;padding:1px 6px;border-radius:4px;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:14px;"><span leaf="">SKILL.md</span></span>
+<span style="background:#F1F5F9;color:#DC2626;padding:1px 6px;border-radius:4px;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:14px;"><span leaf="">SKILL.md</span></span>
 ```
 
+（文字色 `#DC2626` 换主题主色；底色保持中性浅灰。）
 
 ---
 
 ## 二、图片 / GIF 组件（Markdown `![](...)` → 这里）
 
-文章里**每一处图片、GIF、截图占位都要保留并转成下面的组件**，不得遗漏；最终 src 使用经加载和公众号粘贴实测的 HTTPS 图片地址；原始图片来源保留在 Markdown。相对路径和本地图片需先处理为可复制素材，不能只让预览显示就交付。GIF 动图与普通图片都用 `<img>`（播放效果需实际检查），区别只在加不加"动图"角标说明。
+文章里**每一处图片、GIF、截图占位都要保留并转成下面的组件**，不得遗漏；`src` 原样保留用户给的 URL 或相对路径。GIF 动图与普通图片都用 `<img>`（公众号原生支持 GIF 自动播放），区别只在加不加"动图"角标说明。
 
 ### 2a. 标准图片（带说明）
 
@@ -81,22 +87,22 @@
   </section>
 </section>
 <p style="text-align:center;margin:0 0 24px;">
-  <span style="display:inline-block;border:1px solid #52525B;color:#52525B;font-size:11px;font-weight:700;padding:1px 8px;border-radius:4px;margin-right:6px;"><span leaf="">GIF 动图</span></span>
-  <span style="color:#9CA3AF;"><span leaf="">动图说明文字</span></span>
+  <span style="display:inline-block;background:#FEE2E2;color:#991B1B;font-size:11px;font-weight:700;padding:1px 8px;border-radius:4px;margin-right:6px;"><span leaf="">GIF 动图</span></span>
+  <span style="font-size:12px;color:#9CA3AF;"><span leaf="">动图说明文字</span></span>
 </p>
 ```
 
-石墨极简中 GIF 角标用透明底和细线描边。若没有经验证的真实地址，标记素材阻塞，不生成失效 img，不编造图床链接。示例地址必须替换为真实素材并实测粘贴。
+（角标底色 `#FEE2E2` → 主题浅底色，字色 `#991B1B` → 主题深字色，取自该主题"设计变量速查表"；无色块的极简主题改用细线描边胶囊：边框与字色用主题主色、背景透明。）若原文只写了图片但没给 URL，用 `src="图片URL"` 占位并在交付时提醒用户补图，**不要凭空编造图床链接**。
 
 ---
 
 ### 2c. 待补素材占位（**居中板块**，用于 GIF / 录屏 / 视频 / 成果图待补处）
 
-**仅草稿使用，不能作为可直接复制的最终图片交付。**文章里 `【插入xxx】`、待录屏、待补 GIF/视频/截图等占位，用这个**居中**板块，不要用左对齐的提示块。所有排版风格通用，浅底柔虚线框 + 居中图标与说明，一眼看出"此处待补"。
+文章里 `【插入xxx】`、待录屏、待补 GIF/视频/截图等占位，一律用这个**居中**板块，不要用左对齐的提示块。所有排版风格通用，浅底柔虚线框 + 居中图标与说明，一眼看出"此处待补"。
 
 ```html
 <section style="margin:0 0 24px;padding:30px 20px;border:1.5px dashed #DAD7D2;border-radius:14px;background:#FAFAF8;text-align:center;">
-  <p style="margin:0 0 10px;font-size:24px;line-height:1;"><span leaf="">🎬</span></p>
+  <p style="margin:0 0 10px;font-size:26px;line-height:1;"><span leaf="">🎬</span></p>
   <p style="margin:0;font-size:14px;font-weight:700;color:#9CA3AF;letter-spacing:1px;"><span leaf="">待补素材</span></p>
   <p style="margin:8px 0 0;font-size:13px;color:#B8B5B0;line-height:1.7;"><span leaf="">此处插入：创建 skill 的录屏演示</span></p>
 </section>
@@ -112,13 +118,18 @@
 
 > **设计取向**：强调一段内容或起一个小标题时，优先用下面的"小标签 / 左竖条"形式，**不要用四周虚线框（dashed）包一个标题**——虚线框笨重、抢戏。小标签更轻、更现代。
 >
-> **使用优先级**：先查所选主题库的映射规则——主题库有等价语义组件（自己的金句块/提示块/小标题）就用主题库版本保持气质一致；没有时才用本节组件保持当前石墨配色。
+> **使用优先级**：先查所选主题库的映射规则——主题库有等价语义组件（自己的金句块/提示块/小标题）就用主题库版本保持气质一致；没有时才用本节组件并按下面规则换色。
 >
+> **换色规则**（示例为红白色值，按所选主题"设计变量速查表"替换）：
+> - 3a 左竖条 `#DC2626` → 主题主色；3b 药丸底 `#DC2626` → 主题主色（字保持白）
+> - 3c 序号药丸底 `#FEE2E2` → 主题浅底色，序号字 `#991B1B` → 主题深字色
+> - 3d/3e 块底 `#FEF2F2` → 主题浅底色，竖条/类型标签 `#DC2626` → 主题主色
+> - **无色块的极简主题**（留白禅意/石墨极简等）：3a 竖条细化为 `2–3px`，3d/3e 去掉底色、只留左竖条 + 大留白，贴合该主题气质。
 
 ### 3a. 左竖条小标题（最推荐，干净）
 
 ```html
-<p style="margin:28px 0 14px;font-size:16px;font-weight:800;color:#1C1917;line-height:1.5;border-left:4px solid #52525B;padding-left:12px;">
+<p style="margin:28px 0 14px;font-size:16px;font-weight:800;color:#1C1917;line-height:1.5;border-left:4px solid #DC2626;padding-left:12px;">
   <span leaf="">小标题文字</span>
 </p>
 ```
@@ -127,7 +138,7 @@
 
 ```html
 <p style="margin:28px 0 14px;">
-  <span style="display:inline-block;background:#52525B;color:#FFFFFF;font-size:14px;font-weight:700;padding:5px 16px;border-radius:6px;"><span leaf="">小标题文字</span></span>
+  <span style="display:inline-block;background:#DC2626;color:#FFFFFF;font-size:14px;font-weight:700;padding:5px 16px;border-radius:6px;"><span leaf="">小标题文字</span></span>
 </p>
 ```
 
@@ -135,7 +146,7 @@
 
 ```html
 <p style="margin:24px 0 12px;font-size:15px;font-weight:800;color:#1C1917;line-height:1.6;">
-  <span style="display:inline-block;background:#F4F4F5;color:#27272A;border-radius:5px;padding:1px 9px;margin-right:8px;font-weight:900;"><span leaf="">01</span></span>
+  <span style="display:inline-block;background:#FEE2E2;color:#991B1B;border-radius:5px;padding:1px 9px;margin-right:8px;font-weight:900;"><span leaf="">01</span></span>
   <span leaf="">要点标题</span>
 </p>
 ```
@@ -143,8 +154,8 @@
 ### 3d. 金句引用（左竖条版，取代旧的虚线框金句）
 
 ```html
-<section style="margin:0 0 24px;background:#FAFAFA;border-radius:0 10px 10px 0;border-left:4px solid #52525B;padding:16px 20px;">
-  <p style="font-size:16px;font-weight:800;color:#27272A;margin:0;line-height:1.8;">
+<section style="margin:0 0 24px;background:#FEF2F2;border-radius:0 10px 10px 0;border-left:4px solid #DC2626;padding:16px 20px;">
+  <p style="font-size:16px;font-weight:800;color:#991B1B;margin:0;line-height:1.8;">
     <span leaf="">「这里是核心观点或关键金句」</span>
   </p>
 </section>
@@ -153,9 +164,9 @@
 ### 3e. 提示 / 旁注块（左竖条 + 类型小标签，取代旧的虚线提示框）
 
 ```html
-<section style="margin:0 0 24px;background:#FAFAFA;border-radius:0 8px 8px 0;border-left:4px solid #52525B;padding:14px 18px;">
+<section style="margin:0 0 24px;background:#FEF2F2;border-radius:0 8px 8px 0;border-left:4px solid #DC2626;padding:14px 18px;">
   <p style="margin:0 0 6px;">
-    <span style="display:inline-block;background:#52525B;color:#FFFFFF;font-size:11px;font-weight:700;padding:2px 10px;border-radius:4px;letter-spacing:1px;"><span leaf="">提示</span></span>
+    <span style="display:inline-block;background:#DC2626;color:#FFFFFF;font-size:11px;font-weight:700;padding:2px 10px;border-radius:4px;letter-spacing:1px;"><span leaf="">提示</span></span>
   </p>
   <p style="font-size:14px;color:#374151;margin:0;line-height:1.8;">
     <span leaf="">提示或旁注的正文内容</span>

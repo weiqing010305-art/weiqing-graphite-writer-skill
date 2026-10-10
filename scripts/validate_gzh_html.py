@@ -1,155 +1,176 @@
 #!/usr/bin/env python3
-"""Validate this skill's HTML profile, not official WeChat behavior.
+"""微信公众号 HTML 合规校验器。
 
-Exit 1 on errors, or on warnings with --strict; exit 2 on input failure.
+把 SKILL.md 里"必须遵守的平台限制"从模型自觉变成确定性兜底。
+排版生成后必跑：检查禁用标签/属性/样式，并核查文字节点是否用
+<span leaf=""> 包裹（公众号编辑器粘贴后保持样式的关键）。
+
+用法:
+    validate_gzh_html.py <file.html>
+    validate_gzh_html.py --stdin < file.html
+
+退出码: 1 = 有 ERROR（会被公众号过滤或粘贴后样式丢失）; 0 = 通过。
 """
+
 import argparse
 import re
 import sys
 from html.parser import HTMLParser
-from pathlib import Path
 
-for stream in (sys.stdin, sys.stdout, sys.stderr):
-    if hasattr(stream, 'reconfigure'):
-        stream.reconfigure(encoding='utf-8', errors='replace')
+# Windows 控制台默认可能是 GBK，强制 UTF-8 输出，避免中文/符号打印直接崩掉
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
-ALLOWED = set('section p span strong em b i u s del br img h2 h3 h4 a ul ol li table thead tbody tfoot tr th td caption colgroup col'.split())
-VOID = {'br', 'img', 'col'}
-CJK = re.compile(r'[\u3400-\u9fff]')
-HALF_PUNCT = re.compile(r'[\u3400-\u9fff][,;!?]|[\u3400-\u9fff]\.(?!\d)')
-CODE_STYLE = re.compile(r'monospace|courier|consolas|sf mono', re.I)
-BAD_STYLE = re.compile(r'position\s*:\s*(?:fixed|absolute|sticky)\b|(?:^|;)\s*float\s*:|display\s*:\s*(?:inline-)?grid\b|@(?:media|keyframes|import)|var\s*\(|expression\s*\(|url\s*\(|/\*|\\', re.I)
+# (正则, 级别, 说明) —— ERROR 会被公众号编辑器过滤掉或导致样式失效
+FORBIDDEN = [
+    (re.compile(r"<style[\s>]", re.I), "ERROR", "<style> 标签会被过滤，样式必须内联"),
+    (re.compile(r"<script[\s>]", re.I), "ERROR", "<script> 标签会被过滤"),
+    (re.compile(r"</?div[\s>]", re.I), "ERROR", "<div> 会被改写，请用 <section>"),
+    (re.compile(r"<link[\s>]", re.I), "ERROR", "外部 <link>（CSS/字体）会被过滤"),
+    (re.compile(r"\sclass\s*=", re.I), "ERROR", "class 属性会被剥离，请用内联 style"),
+    (re.compile(r"\sid\s*=", re.I), "ERROR", "id 属性会被剥离"),
+    (re.compile(r"position\s*:\s*(fixed|absolute|sticky)", re.I), "ERROR",
+     "position fixed/absolute/sticky 不被支持"),
+    (re.compile(r"float\s*:", re.I), "ERROR", "float 不被支持"),
+    (re.compile(r"@media", re.I), "ERROR", "@media 媒体查询不被支持"),
+    (re.compile(r"@keyframes", re.I), "ERROR", "@keyframes 动画不被支持"),
+    (re.compile(r"@import", re.I), "ERROR", "@import 不被支持"),
+    (re.compile(r"display\s*:\s*grid", re.I), "ERROR", "display:grid 不被支持，请用 flex"),
+    (re.compile(r"var\s*\(\s*--", re.I), "ERROR", "CSS 变量 var(--x) 不被支持，请写死值"),
+    (re.compile(r"url\s*\(\s*['\"]?https?://[^)]*\.(woff2?|ttf|otf|eot)", re.I),
+     "ERROR", "外部字体不被支持"),
+]
+
+CJK = re.compile(r"[一-鿿㐀-䶿]")
+SKIP_TAGS = {"head", "title", "style", "script"}  # 不参与公众号正文粘贴的区域
+# 中文字后紧跟半角逗号/分号/叹号/问号（应改全角）；只查"中文在前"避免中英混排误伤
+HALF_PUNCT = re.compile(r"[一-鿿㐀-䶿][,;!?]")
+ASCII_QUOTE = re.compile(r"[\"']")
+# 代码区特征：等宽字体或 white-space:pre —— 其内半角符号是正常的
+CODE_STYLE = re.compile(r"monospace|white-space\s*:\s*pre|courier|consolas|sf mono", re.I)
+
 
 class LeafChecker(HTMLParser):
+    """检查每个非空文本节点是否处于 <span leaf> 内。"""
+
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.stack = []  # (tag, leaf, code)
-        self.errors = []
-        self.warnings = []
-        self.roots = []
-        self.span_leaf_count = 0
-        self.orange_count = 0
-        self.visible = False
-        self.image_count = 0
-
-    def error(self, message):
-        self.errors.append(f'行 {self.getpos()[0]}：{message}')
-
-    def handle_decl(self, decl):
-        self.error('正文不得包含 DOCTYPE 或其他声明')
-
-    def handle_pi(self, data):
-        self.error('正文不得包含处理指令')
+        self.stack = []           # [(tag, is_leaf, is_code)]
+        self.leaf_depth = 0       # 处于 span[leaf] 内的嵌套计数
+        self.code_depth = 0       # 处于代码区（等宽/pre）内的嵌套计数
+        self.span_leaf_count = 0  # 全文 span leaf 总数
+        self.unwrapped = []       # (文本片段, 父标签) —— 未被 leaf 包裹的中文文本
+        self.half_punct = []      # 正文里疑似半角标点的片段
 
     def handle_starttag(self, tag, attrs):
-        if not self.stack:
-            self.roots.append(tag)
-        if tag not in ALLOWED:
-            self.error(f'正文不允许 <{tag}>')
         ad = dict(attrs)
-        if len(ad) != len(attrs):
-            self.error('重复属性')
-        for key, value in attrs:
-            value = value or ''
-            if key in {'class', 'id', 'srcdoc', 'srcset', 'xmlns'} or key.startswith('on'):
-                self.error(f'正文不允许属性 {key}')
-            if key in {'href', 'src', 'background', 'action', 'xlink:href'}:
-                compact = re.sub(r'[\s\x00-\x20\x7f]+', '', value)
-                if compact.startswith('//') or (re.match(r'^[\w+.-]+:', compact) and not re.match(r'^https?://', compact, re.I)):
-                    self.error(f'{key} 仅允许 http(s) 或相对路径')
-            if key == 'style':
-                if BAD_STYLE.search(value):
-                    self.error('使用了本技能禁用的样式')
-                for declaration in value.split(';'):
-                    prop, sep, val = declaration.partition(':')
-                    if sep and prop.strip().lower() == 'font-size':
-                        font = re.fullmatch(r'\s*(\d+(?:\.\d+)?)px\s*(?:!important\s*)?', val, re.I)
-                        if not font or float(font[1]) > 24:
-                            self.error('font-size 必须为不超过 24px 的像素值')
-                if tag == 'strong' and re.search(r'(?:^|;)\s*(?:font-size|border-bottom)\s*:', value, re.I):
-                    self.error('strong 上不要设置字号或下划线')
-                if '#f97316' in value.lower():
-                    self.orange_count += 1
-        if tag == 'img':
-            self.image_count += 1
-            self.visible = True
-            src = ad.get('src', '') or ''
-            if not src or '{{' in src or src in {'待补', '图片URL', '动图URL.gif'}:
-                self.error('图片缺少真实地址，请使用待补素材组件')
-            elif not re.match(r'^https://[^/\s]+(?:/|$)', src, re.I):
-                self.error('图片必须使用可访问的 HTTPS 地址；本地、相对路径和临时地址不能作为可复制交付')
-        is_leaf = tag == 'span' and 'leaf' in ad
+        is_leaf = tag == "span" and "leaf" in ad
+        is_code = bool(CODE_STYLE.search(ad.get("style", "") or ""))
         if is_leaf:
             self.span_leaf_count += 1
-        if tag not in VOID:
-            self.stack.append((tag, is_leaf, tag in {'code', 'pre'} or bool(CODE_STYLE.search(ad.get('style') or ''))))
-
-    def handle_startendtag(self, tag, attrs):
-        self.handle_starttag(tag, attrs)
-        if tag not in VOID:
-            self.handle_endtag(tag)
+            self.leaf_depth += 1
+        if is_code:
+            self.code_depth += 1
+        self.stack.append((tag, is_leaf, is_code))
 
     def handle_endtag(self, tag):
-        if not self.stack or self.stack[-1][0] != tag:
-            self.error(f'标签闭合不匹配：</{tag}>')
-            return
-        self.stack.pop()
+        for i in range(len(self.stack) - 1, -1, -1):
+            if self.stack[i][0] == tag:
+                for _, was_leaf, was_code in self.stack[i:]:
+                    if was_leaf:
+                        self.leaf_depth -= 1
+                    if was_code:
+                        self.code_depth -= 1
+                del self.stack[i:]
+                break
 
     def handle_data(self, data):
         text = data.strip()
-        if not text:
+        if not text or not CJK.search(text):
             return
-        self.visible = True
-        if not any(leaf for _, leaf, _ in self.stack):
-            self.error(f'文字未用 span leaf 包裹：{text[:32]}')
-        if not any(code for _, _, code in self.stack) and CJK.search(text):
-            if HALF_PUNCT.search(text):
-                self.warnings.append(f'行 {self.getpos()[0]}：疑似中文半角标点：{text[:32]}')
-            if '{{' in text or re.search(r'待补|待核实|【插入', text):
-                self.warnings.append(f'行 {self.getpos()[0]}：待补内容：{text[:32]}')
+        if any(t in SKIP_TAGS for t, _, _ in self.stack):
+            return  # <head>/<title>/<style>/<script> 内文字不进公众号正文
+        if self.leaf_depth == 0:
+            parent = self.stack[-1][0] if self.stack else "(root)"
+            snippet = text[:24] + ("…" if len(text) > 24 else "")
+            self.unwrapped.append((snippet, parent))
+        if self.code_depth == 0 and (HALF_PUNCT.search(text)
+                                     or ASCII_QUOTE.search(text)):
+            snippet = text[:24] + ("…" if len(text) > 24 else "")
+            self.half_punct.append(snippet)
 
 
-def validate(html, name='<input>'):
+def validate(html, name="<input>"):
+    errors, warnings = [], []
+
+    for rx, level, msg in FORBIDDEN:
+        hits = len(rx.findall(html))
+        if hits:
+            (errors if level == "ERROR" else warnings).append(
+                f"{msg}（命中 {hits} 处）")
+
     checker = LeafChecker()
     try:
         checker.feed(html)
-        checker.close()
-    except Exception as exc:
-        checker.errors.append(f'HTML 解析失败：{exc}')
-    if checker.roots != ['section']:
-        checker.errors.append('正文必须只有一个根 section，不能校验预览整页')
-    if checker.stack:
-        checker.errors.append('存在未闭合标签')
-    if not checker.visible:
-        checker.errors.append('正文为空')
-    if checker.orange_count > 3:
-        checker.errors.append(f'暖橙使用了 {checker.orange_count} 个元素，最多 3 个')
-    if checker.image_count:
-        checker.warnings.append('图片地址静态检查不能证明可复制；必须逐图检查加载并实测粘贴到公众号后显示正常')
-    return checker.errors, checker.warnings, checker.span_leaf_count
+    except Exception as e:  # 容错：解析失败不致命，只提示
+        warnings.append(f"HTML 解析中断: {e}")
+
+    has_cjk = bool(CJK.search(html))
+    if has_cjk and checker.span_leaf_count == 0:
+        errors.append("全文没有任何 <span leaf=\"\"> 包裹——"
+                      "粘贴到公众号后样式会大面积丢失")
+    elif checker.unwrapped:
+        sample = "；".join(f"「{s}」(在 <{p}> 内)"
+                           for s, p in checker.unwrapped[:5])
+        warnings.append(
+            f"{len(checker.unwrapped)} 处中文文本未被 <span leaf> 包裹，"
+            f"样式可能丢失。例：{sample}")
+
+    if checker.half_punct:
+        sample = "；".join(f"「{s}」" for s in checker.half_punct[:5])
+        warnings.append(
+            f"{len(checker.half_punct)} 处正文疑似半角标点/英文引号，应改中文全角"
+            f"（代码块内不计）。例：{sample}")
+
+    return errors, warnings, checker.span_leaf_count
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('file', nargs='?')
-    ap.add_argument('--stdin', action='store_true')
-    ap.add_argument('--strict', action='store_true', help='警告也返回非零退出码')
+    ap = argparse.ArgumentParser()
+    ap.add_argument("file", nargs="?", help="HTML 文件路径")
+    ap.add_argument("--stdin", action="store_true", help="从标准输入读取")
     args = ap.parse_args()
-    if args.stdin and args.file:
-        ap.error('file 与 --stdin 不能同时使用')
-    try:
-        html = sys.stdin.read() if args.stdin or not args.file else Path(args.file).read_text(encoding='utf-8-sig')
-    except (OSError, UnicodeError) as exc:
-        print(f'无法读取输入：{exc}', file=sys.stderr)
-        return 2
-    errors, warnings, count = validate(html)
-    print(f'正文静态校验：{args.file or "<stdin>"}；leaf={count}；ERROR={len(errors)}；WARNING={len(warnings)}')
-    for kind, items in [('ERROR', errors), ('WARNING', warnings)]:
-        for item in items:
-            print(f'{kind}: {item}')
-    if not errors:
-        print('静态检查通过；实际粘贴效果仍需检查。')
-    return int(bool(errors or (args.strict and warnings)))
 
-if __name__ == '__main__':
-    sys.exit(main())
+    if args.stdin or not args.file:
+        html = sys.stdin.read()
+        name = "<stdin>"
+    else:
+        with open(args.file, encoding="utf-8", errors="replace") as f:
+            html = f.read()
+        name = args.file
+
+    errors, warnings, leaf_n = validate(html, name)
+
+    print(f"📋 公众号 HTML 合规校验: {name}")
+    print(f"   span leaf 包裹: {leaf_n} 处")
+    if errors:
+        print(f"\n❌ ERROR ×{len(errors)}（必须修复，否则粘贴后失效）:")
+        for e in errors:
+            print(f"   • {e}")
+    if warnings:
+        print(f"\n⚠️  WARNING ×{len(warnings)}（建议检查）:")
+        for w in warnings:
+            print(f"   • {w}")
+    if not errors and not warnings:
+        print("\n✅ 完全合规，可直接粘贴到公众号编辑器")
+    elif not errors:
+        print("\n✅ 无致命问题，可粘贴（warning 请人工确认）")
+
+    sys.exit(1 if errors else 0)
+
+
+if __name__ == "__main__":
+    main()

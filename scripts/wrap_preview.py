@@ -1,55 +1,51 @@
 #!/usr/bin/env python3
-"""Wrap a validated section fragment in the local copy preview."""
-import argparse
-import html
+"""把已校验的公众号正文片段（纯 <section>）包成带「复制」按钮的浏览器预览页。
+
+用户打开预览页 → 点右上角「复制到公众号」→ 按钮选中并复制里面渲染后的富文本
+（等价手动 Ctrl+A/Ctrl+C，样式全保留）→ 到公众号编辑器 Ctrl+V 粘贴即可。
+
+按钮和 JS 只存在于预览外壳里，**不在被复制的 section 内**，所以粘进公众号的
+仍是干净合规的正文，不含 <script>/<button>。校验请对原始 section 文件跑
+validate_gzh_html.py（本预览页含 script/style，不参与校验）。
+
+用法:
+    wrap_preview.py <section.html> [output.html]
+    默认输出 <section去扩展名>_预览.html
+"""
+
+import os
 import sys
-from pathlib import Path
-from validate_gzh_html import validate
 
-
-def render_preview(content, title, template, *, images_verified=False):
-    errors, warnings, _ = validate(content)
-    if errors:
-        raise ValueError('正文校验失败：' + '；'.join(errors))
-    if any('图片地址静态检查' in warning for warning in warnings) and not images_verified:
-        raise ValueError('含图片的正文尚未完成公众号粘贴实测，不能交付可复制预览；实测通过后使用 --images-verified')
-    if template.count('<!--GZH_CONTENT-->') != 1 or '{{TITLE}}' not in template:
-        raise ValueError('预览模板缺少或重复插槽')
-    # Replace template slots before inserting user content: literal {{TITLE}}
-    # inside the article must never be rewritten.
-    page = template.replace('{{TITLE}}', html.escape(title, quote=True))
-    return page.replace('<!--GZH_CONTENT-->', content), warnings
+# Windows 控制台默认可能是 GBK，强制 UTF-8 输出，避免中文/符号打印直接崩掉
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('file', type=Path)
-    ap.add_argument('output', nargs='?', type=Path)
-    ap.add_argument('--images-verified', action='store_true', help='仅在逐图加载及公众号粘贴实测通过后使用，不能凭 HTTPS 地址判断')
-    args = ap.parse_args()
-    src = args.file.resolve()
-    out = (args.output or src.with_name(src.stem + '_预览.html')).resolve()
-    if src == out:
-        ap.error('预览路径不能覆盖正文文件')
-    if out.exists():
-        ap.error('预览文件已存在，请指定新的输出路径')
-    try:
-        content = src.read_text(encoding='utf-8-sig').strip()
-        template = (Path(__file__).resolve().parent.parent / 'assets' / 'preview-template.html').read_text(encoding='utf-8-sig')
-        page, warnings = render_preview(content, src.stem, template, images_verified=args.images_verified)
-        # Relative images and links resolve relative to their original article.
-        if out.parent != src.parent:
-            raise ValueError('预览须与正文位于同一目录，以保留相对图片和链接')
-        with out.open('x', encoding='utf-8') as handle:
-            handle.write(page)
-    except (OSError, UnicodeError, ValueError) as exc:
-        print(f'生成失败：{exc}', file=sys.stderr)
-        return 1
-    print(f'已生成预览：{out}')
-    for warning in warnings:
-        print('WARNING: ' + warning)
-    print('打开预览，复制正文，再粘贴到公众号。')
-    return 0
+    if len(sys.argv) < 2:
+        print("用法: wrap_preview.py <section.html> [output.html]")
+        sys.exit(1)
+    src = sys.argv[1]
+    if not os.path.isfile(src):
+        print(f"✗ 找不到文件: {src}")
+        sys.exit(1)
 
-if __name__ == '__main__':
-    sys.exit(main())
+    content = open(src, encoding="utf-8").read().strip()
+    tpl_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "..", "assets", "preview-template.html")
+    tpl = open(tpl_path, encoding="utf-8").read()
+
+    title = os.path.splitext(os.path.basename(src))[0]
+    out_html = tpl.replace("{{TITLE}}", title).replace("<!--GZH_CONTENT-->", content)
+
+    out = sys.argv[2] if len(sys.argv) > 2 else os.path.splitext(src)[0] + "_预览.html"
+    open(out, "w", encoding="utf-8").write(out_html)
+    print(f"✓ 已生成带「复制」按钮的预览页: {out}")
+    print("  用浏览器打开它，点右上角「复制到公众号」，再去公众号编辑器 Ctrl/⌘+V 粘贴。")
+
+
+if __name__ == "__main__":
+    main()

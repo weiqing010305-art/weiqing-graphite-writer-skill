@@ -4,14 +4,14 @@
 >
 > **设计风格**：石墨灰 + 纯白 + 几何细线 + 超大留白。克制的现代极简排版，几乎无色块，以 1px 细线与大间距建立秩序感。正文关键词用石墨下划线（`border-bottom:2px solid #52525B;font-weight:600;`）标记，超大水印编号章节、上下细线引言卡、几何签名区的编辑骨架，气质极简克制、留白理性。适合设计、科技评论、专业观点、高端品牌类文章。
 >
-> **本技能正文兼容性约定**（非微信官方完整规范；实际效果需粘贴检查）：
+> **公众号平台限制须知**：
 > - ❌ 不支持 `<style>`/`<script>`、CSS class/id/`<div>`、`position:fixed/absolute/sticky`、`float`、`@media`/`@keyframes`、`display:grid`、CSS 变量 `var(--x)`
 > - ✅ 支持内联 `style`、`display:flex`（有限）、`linear-gradient`、`border-radius`、`box-shadow`、`position:relative`、`<section>/<p>/<span>/<strong>/<img>` 等基础标签
 > - font-size ≤ 24px；正文强调用左竖条/石墨下划线/小标签，**不用四周虚线框**（dashed）
 >
-> **组件装配注意**：
-> - 所有"装饰性空元素"（细线分割线、END 短线、水印编号旁装饰、数据卡分隔、时间线竖线）**必须在内部放 `<span leaf=""><br></span>` 占位**，以保留可见装饰结构
-> - **不要把 `font-size`/`border-bottom` 打在 `<strong>` 上**，也不要在同一个 `<p>` 里混多个不同 `font-size`；混合标签可分为独立 section 以简化粘贴。高亮样式挂外层 span
+> **WeChat 兼容铁律**（本主题组件全部已按此写好，改动时必须遵守）：
+> - 所有"装饰性空元素"（细线分割线、END 短线、水印编号旁装饰、数据卡分隔、时间线竖线）**必须在内部放 `<span leaf=""><br></span>` 占位**，否则微信会剥掉样式
+> - **不要把 `font-size`/`border-bottom` 打在 `<strong>` 上**，也不要在同一个 `<p>` 里混多个不同 `font-size`——微信编辑器会自动"纠正"导致样式被重写。正确做法：拆成多个 `<p>`，每个 `<p>` 只有一个字号；高亮样式统一挂在外层 `<span>` 上
 > - 不用 `position:absolute` 做划线/高亮，删除线用 `text-decoration:line-through`
 > - 结构化区域（如引言卡右下署名、图片说明、水印编号旁标签）没有内容时**整块删掉**，不留空 section
 
@@ -30,7 +30,7 @@
 极浅灰底：         #FAFAFA（引用块 / 目录卡 / 提示块，正文底保持纯白）
 纯白底：           #FFFFFF
 强调色（暖橙）：   #F97316（全篇 ≤3 处，仅用于锚点点睛）
-正文字号：         默认 15px（用户要求优先，上限 24px）
+正文字号：         15px（不可改）
 行高：             1.8
 字间距：           0.3px
 最大宽度：         677px
@@ -58,7 +58,7 @@
 
 > **文案策略（先读，比代码重要）**：
 > - 引言卡金句和公众号外标题是**两层**，视角要错开——外标题卖"为什么点开"，引言卡卖"核心观点是什么"
-> - 新写时避免重复标题；纯排版只使用原有引言，不重新提炼或改写引语
+> - 已知外标题时，金句**禁止原样复述**其核心关键词；从文章第一段或核心论点提炼一句有张力的判断句
 > - 右下署名按文章实际作者填，未知则整行删掉，**不要固定写"甲木"**
 > - 纯白底 + 上下各 1px 石墨极细线框定 + 大号金句，无色块、无阴影、无圆角，完全依靠细线与留白产生质感
 
@@ -84,7 +84,7 @@
 
 ## 组件 3 前言导读区域（本文看点，三列极简线框目录卡）
 
-> 新写文章有 3 个及以上章节时可生成；纯排版仅保留原有导读。上方极细线 + 极浅灰底，石墨灰编号 + 深炭标题，纯灰阶无橙色，大留白。展示**精选 3 个核心看点**，不是全量章节列表。
+> 3 个及以上章节时生成。上方极细线 + 极浅灰底，石墨灰编号 + 深炭标题，纯灰阶无橙色，大留白。展示**精选 3 个核心看点**，不是全量章节列表。
 
 ```html
 <section style="padding:0 10px 40px;">
@@ -131,7 +131,7 @@
 ```html
 <section style="margin-top:56px;margin-bottom:32px;padding:0 10px;">
   <section style="position:relative;padding-bottom:20px;border-bottom:1px solid #E4E4E7;">
-    <p style="font-size:24px;font-weight:900;color:#E4E4E7;margin:0;line-height:1;letter-spacing:-2px;">
+    <p style="font-size:48px;font-weight:900;color:#E4E4E7;margin:0;line-height:1;letter-spacing:-2px;">
       <span leaf="">01</span>
     </p>
     <section style="margin-top:-8px;">
@@ -152,7 +152,7 @@
 **结语章节变体**（编号用 `∞` 替代数字，契合极简的无限循环意象，英文标签用 `THE END` / `EPILOGUE`）：
 
 ```html
-<p style="font-size:24px;font-weight:900;color:#E4E4E7;margin:0;line-height:1;letter-spacing:-2px;">
+<p style="font-size:48px;font-weight:900;color:#E4E4E7;margin:0;line-height:1;letter-spacing:-2px;">
   <span leaf="">∞</span>
 </p>
 ```
@@ -163,7 +163,7 @@
 
 ## 组件 6 正文段落
 
-> **强调规则**：按需识别 1–3 个关键短语，用石墨下划线（7d）标记；短段、过渡段、引用和代码可以不标。优先保留作者强调，避免为了配额强行划线。
+> **关键规则**：每段主动识别 1~3 个关键短语，用**石墨下划线（7d）**标记——这是本风格的核心视觉特征，灰阶下划线低调而精准，让读者快速扫到每段重点。
 
 **基础段落**：
 
@@ -222,7 +222,7 @@
 ### 7b. 极浅灰底深炭字标签（核心概念，每篇 2~4 个）
 
 ```html
-<span style="background:#F4F4F5;color:#27272A;padding:2px 7px;border-radius:3px;font-weight:700;"><span leaf="">关键词标签</span></span>
+<span style="background:#F4F4F5;color:#27272A;padding:2px 7px;border-radius:3px;font-weight:700;font-size:14px;"><span leaf="">关键词标签</span></span>
 ```
 
 ### 7c. 极浅灰背景高亮（次要关键词）
@@ -365,9 +365,9 @@
     <span style="display:inline-block;background:#27272A;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:0.5px;"><span leaf="">STEP 01</span></span>
     <span style="font-size:15px;font-weight:800;color:#27272A;"><span leaf="">{{步骤标题}}</span></span>
   </section>
-  <section style="font-size:15px;margin:0 0 16px;color:#52525B;line-height:1.8;text-align:justify;">
+  <p style="font-size:15px;margin:0 0 16px;color:#52525B;line-height:1.8;text-align:justify;">
     {{步骤内容}}
-  </section>
+  </p>
 </section>
 ```
 
@@ -458,11 +458,11 @@
 ```html
 <section style="display:flex;margin:0 10px 28px;">
   <section style="flex:1;border:1px solid #E4E4E7;padding:22px 16px;margin-right:8px;text-align:center;">
-    <p style="font-size:24px;font-weight:900;color:#27272A;margin:0 0 6px;line-height:1;letter-spacing:-1px;"><span leaf="">{{数字}}</span></p>
+    <p style="font-size:32px;font-weight:900;color:#27272A;margin:0 0 6px;line-height:1;letter-spacing:-1px;"><span leaf="">{{数字}}</span></p>
     <p style="font-size:11px;color:#A1A1AA;margin:0;letter-spacing:1px;"><span leaf="">{{说明}}</span></p>
   </section>
   <section style="flex:1;border:1px solid #E4E4E7;padding:22px 16px;text-align:center;">
-    <p style="font-size:24px;font-weight:900;color:#27272A;margin:0 0 6px;line-height:1;letter-spacing:-1px;"><span leaf="">{{数字}}</span></p>
+    <p style="font-size:32px;font-weight:900;color:#27272A;margin:0 0 6px;line-height:1;letter-spacing:-1px;"><span leaf="">{{数字}}</span></p>
     <p style="font-size:11px;color:#A1A1AA;margin:0;letter-spacing:1px;"><span leaf="">{{说明}}</span></p>
   </section>
 </section>
@@ -583,7 +583,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 
 ## 组件 16 尾部作者签名区
 
-> 仅在有真实署名或用户要求占位时使用。下方文案是示例，CTA 按请求选择，不默认添加三连；纯排版只沿用原有内容。有真实名片素材才放图。
+> 固定签名文案以正文段落形式呈现；有个人名片 / 引导图素材才放图，无素材整块删。
 
 ```html
 <section style="padding:0 10px 24px;">
@@ -611,7 +611,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 
   <!-- 2. 前言正文（组件6 段落 × N，放 0 10px 边距 section，第一章之前的开场白） -->
 
-  <!-- 3. 前言导读（组件3，新写时可选，精选 3 看点；纯排版仅沿用原有导读） -->
+  <!-- 3. 前言导读（组件3，3+ 章节时生成，精选 3 看点） -->
 
   <!-- 4. 第一章（组件5 章节标题，margin-top:16px） -->
   <!--    章内：组件6 正文 + 6b 子标题 + 7 行内高亮 + 8 引用 + 9 提示 + 10 标签组 + 11 列表 + 12 数据 + 14 图片 -->
@@ -627,7 +627,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 </section>
 ```
 
-**骨架是可选装配顺序**：引言卡、导读、结语和签名只在有对应内容时使用；纯排版不补写。END 最多一次。签名和 CTA 的增删遵循 SKILL.md 的模式边界。
+**骨架铁律**：引言卡在最前；导读区在前言正文之后、第一章之前；章节之间用组件 4 石墨细线分隔；一篇只有一个 END + 一个签名区。这是经典编辑向的极简骨架——开头引言/封面 → 前言 → 编号章节 → 结语 → 签名。
 
 ---
 
@@ -636,7 +636,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 | 层级 | 样式 | 用途 | 频率 |
 |------|------|------|------|
 | **锚点层** | 橙色下划线 7f / 橙色竖条 9b / 橙色加粗 7a（`#F97316`） | 全文最关键锚点 | 全篇 ≤3 处（含引言卡） |
-| **标记层** | 石墨下划线 7d（默认）+ 字重 600 / 极浅灰底标签 7b | 正文关键词强调 | 按需 1–3 处，允许不标 |
+| **标记层** | 石墨下划线 7d（默认）+ 字重 600 / 极浅灰底标签 7b | 正文关键词强调 | 每段 1~3 处 |
 | **容器层** | 石墨竖条引用 8x / 提示 9x / 标签组 10 / 卡片 11-12 | 引用、旁注、提示、结构化信息 | 按需 |
 
 **克制原则**：
@@ -650,7 +650,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 
 ## 文章类型 → 组件组合配方
 
-按内容主导类型选配方；核心组件构成本篇排版主旋律，点缀组件按内容出现处使用，一篇文章点缀组件种类 ≤3，避免花哨。
+按 SKILL.md 第 3 步判定的文章类型选配方；核心组件构成本篇排版主旋律，点缀组件按内容出现处使用，一篇文章点缀组件种类 ≤3，避免花哨。
 
 | 文章类型 | 核心组件组合 | 点缀组件 |
 |---|---|---|
@@ -662,7 +662,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 | 生活/情感随笔 | 正文6 + 居中金句8d + 辅助竖条旁注8c | 石墨竖条金句8a（少量） |
 | 案例实战 | case-label 10a / timeline 11c + step-label 10a | 极浅灰引用8b、踩坑提示9c |
 
-共用全局容器 1 和正文 6，其余组件按实际内容选择。引言卡、导读、结语和签名不是必填；纯排版不新增这些内容。
+所有类型共用固定结构：引言卡 2 + 导读 3（3+ 章节）+ 水印编号章节 5 + END 15 + 签名 16。
 
 ---
 
@@ -672,9 +672,9 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 |---|---|---|
 | `# 标题` | 不使用 | 公众号文章标题在平台设置 |
 | 文章开头 `> 引言金句` | 组件 2 纯白上下细线引言卡 | 视角与外标题错开 |
-| `## 章节标题` | 组件 5 超大水印编号 + 标题 | 顺序编号，不重复原编号；仅结语末章用 ∞ |
+| `## 章节标题` | 组件 5 超大水印编号 + 标题 | 自动编号 01/02…，末章 ∞ + THE END |
 | `### 子标题` | 组件 6b 石墨左竖条小标题 | 不套水印编号章节样式 |
-| 普通段落 | 组件 6 正文段落 | 按需使用石墨下划线 7d，允许不标 |
+| 普通段落 | 组件 6 正文段落 | 每段主动标 1~3 处石墨下划线 7d |
 | `**加粗文字**` | 组件 7a 深炭加粗（默认）/ 橙色加粗（锚点 ≤3） | 深炭加粗为主 |
 | `==高亮文字==` | 组件 7b 极浅灰底深炭字标签 | 核心概念 |
 | `<u>下划线</u>` / `++文字++` | 组件 7d 石墨下划线 | `2px #52525B` |
@@ -687,7 +687,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 | 操作步骤 | 组件 10a step-label | STEP 01/02… |
 | 技能/工具清单 | 组件 10b skill/tool-label + 10c tool-card | |
 | 案例/经历脉络 | 组件 10a case-label / 11c timeline | |
-| Prompt 提示词 | 通用库 1a/1b 代码块，保留原始内容 | |
+| Prompt 提示词 | 组件 8b 极浅灰引用块 / 通用库 1a（长多行） | |
 | ` ``` 多行代码块 ``` ` | 通用库 1a 深色 / 1b 浅色（左竖条换 #52525B） | 每行一个 `<p style="margin:0">` |
 | 并列要点 | 组件 11b pill-list | |
 | `1. 2. 3.` 编号列表 | 组件 11a ordered-list | 石墨圆标 |
